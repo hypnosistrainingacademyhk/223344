@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>感知偏好評估 - 香港催眠訓練學院</title>
+    <style>
+        :root {
+            --primary-blue: #1d3557;
+            --accent-gold: #c5a059;
+            --light-blue: #f0f7ff;
+            --glass: rgba(255, 255, 255, 0.85);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            margin: 0; padding: 0;
+            font-family: 'PingFang HK', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(180deg, #ffffff 0%, #e3f2fd 100%);
+            background-attachment: fixed;
+            color: #333;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory; /* 強制直式對齊 */
+        }
+
+        /* 頂部極簡進度條 */
+        .header-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 10px 15px; z-index: 1000;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .progress-container { flex: 1; height: 6px; background: #eee; margin-left: 15px; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary-blue); width: 0%; transition: 0.4s; }
+
+        /* 封面 */
+        .hero {
+            height: 100vh;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 30px; scroll-snap-align: start;
+        }
+
+        .title-box {
+            border-left: 5px solid var(--primary-blue);
+            padding-left: 20px; text-align: left;
+        }
+        .main-title { font-size: 2.2em; color: var(--primary-blue); margin: 0; letter-spacing: 1px; }
+        .sub-title { font-size: 1.4em; color: var(--accent-gold); margin-top: 5px; font-weight: 500; }
+
+        /* 題目頁面 - 優化距離感 */
+        .q-section {
+            height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            padding: 15px; scroll-snap-align: start;
+        }
+
+        .q-card {
+            background: var(--glass);
+            width: 100%; max-width: 500px; /* 手機黃金寬度 */
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid white;
+            backdrop-filter: blur(5px);
+        }
+
+        .q-number { color: var(--accent-gold); font-weight: bold; font-size: 0.9em; margin-bottom: 8px; display: block; }
+        .q-text { font-size: 1.25em; font-weight: bold; color: #111; margin-bottom: 20px; line-height: 1.4; }
+
+        /* 選項按鈕 - 貼近且易按 */
+        .opt-list { display: flex; flex-direction: column; gap: 10px; }
+        .opt-item {
+            padding: 16px 20px;
+            background: white;
+            border: 1.5px solid #eee;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 1.05em;
+            display: flex; align-items: center;
+        }
+        .opt-item:active { background: var(--light-blue); transform: scale(0.98); }
+        .opt-item.selected { border-color: var(--primary-blue); background: var(--light-blue); color: var(--primary-blue); font-weight: bold; }
+        .opt-code { margin-right: 12px; color: var(--accent-gold); font-weight: bold; }
+
+        /* 提交按鈕頁 */
+        .footer-page {
+            height: 100vh; display: flex; justify-content: center; align-items: center; scroll-snap-align: start;
+        }
+        .submit-btn {
+            background: var(--primary-blue); color: white;
+            padding: 20px 50px; border: 3px solid var(--accent-gold);
+            border-radius: 50px; font-size: 1.3em; font-weight: bold;
+            box-shadow: 0 10px 25px rgba(29,53,87,0.3);
+        }
+        .submit-btn:disabled { background: #ccc; border-color: #bbb; }
+
+        #result-area { display: none; padding: 100px 20px; text-align: center; min-height: 100vh; }
+    </style>
+</head>
+<body>
+
+<div class="header-bar">
+    <span style="font-weight: bold; font-size: 13px;">進度 <span id="cur">0</span>/30</span>
+    <div class="progress-container"><div class="progress-fill" id="fill"></div></div>
+</div>
+
+<section class="hero">
+    <div class="title-box">
+        <h1 class="main-title">香港催眠訓練學院</h1>
+        <div class="sub-title">感知偏好評估問卷</div>
+    </div>
+    <p style="color: #666; margin-top: 30px;">專注直覺，了解您的感官能量</p>
+    <p style="margin-top: 50px; color: #aaa; font-size: 0.9em;">向上滑動開始 ▽</p>
+</section>
+
+<form id="quiz-form">
+    <div id="container"></div>
+    <div class="footer-page">
+        <button type="button" id="sub" class="submit-btn" onclick="show()" disabled>查看評估結果 Submit</button>
+    </div>
+</form>
+
+<div id="result-area">
+    <h2 style="color: var(--primary-blue);">您的感知藍圖已生成</h2>
+    <div id="msg" style="margin-top:30px; font-size: 1.2em;"></div>
+</div>
+
+<script>
+    // 嚴謹的 30 條不重複問題
+    const questions = [
+        {q: "規劃旅行時，您最先想到：", a: ["目的地壯麗的風景", "當地特色的背景聲音", "飯店床鋪的舒適感", "當地美食的香氣"], c: ['A','B','C','D']},
+        {q: "購買新衣時，您最看重：", a: ["剪裁設計與顏色搭配", "品牌名聲與店員推薦", "布料的觸感與彈性", "新衣服洗滌後的清香"], c: ['A','B','C','D']},
+        {q: "回憶聚會時，印象最深的是：", a: ["佈置風格與朋友的笑容", "現場音樂與交談內容", "握手的溫度與整體氣氛", "當時享用的美食味道"], c: ['A','B','C','D']},
+        {q: "工作時，最容易讓您分心的是：", a: ["雜亂環境或視線晃動", "周圍交談聲或鍵盤聲", "椅子坐得不夠舒服", "茶水間飄來的飯香"], c: ['A','B','C','D']},
+        {q: "學習新技能時，您更喜歡：", a: ["看老師演示流程圖解", "聽老師詳細解說原理", "親自動手操作一遍", "在特定氣味環境中學習"], c: ['A','B','C','D']},
+        {q: "感到壓力大時，如何平復？", a: ["看一場色彩奪目的電影", "聽輕柔的白噪音", "去享受熱水澡或按摩", "點燃香氛蠟燭"], c: ['A','B','C','D']},
+        {q: "評價他人魅力時，首先注意到：", a: ["眼神與衣著品味", "聲音磁性或說話語氣", "給人的安全感與親和力", "身上散發的氣息"], c: ['A','B','C','D']},
+        {q: "佈置家居時，首要考慮：", a: ["配色與光影美感", "環境的寧靜隔音感", "家具的柔軟觸感", "屋內的居家香味"], c: ['A','B','C','D']},
+        {q: "閱讀小說時，您的腦海：", a: ["出現具體的畫面場景", "聽到角色的對白聲音", "感受到主角的情緒波瀾", "聞到文字描述的氣味"], c: ['A','B','C','D']},
+        {q: "運動後，您最大的享受是：", a: ["看著鏡中肌肉的線條", "耳邊輕快的節奏感", "排汗後的輕盈舒暢", "呼吸場邊清新的空氣"], c: ['A','B','C','D']},
+        {q: "餐廳點餐時，您通常：", a: ["看照片決定", "聽侍應推薦", "憑直覺感受", "被香氣吸引"], c: ['A','B','C','D']},
+        {q: "描述事情時，您常說：", a: ["「我看得很清晰」", "「聽起來不錯」", "「我感覺很踏實」", "「味道感覺對了」"], c: ['A','B','C','D']},
+        {q: "選擇手機時，您在意：", a: ["螢幕畫質與外觀設計", "音質與通話清晰度", "手感與滑動流暢度", "開箱的科技產品味"], c: ['A','B','C','D']},
+        {q: "回憶童年，最先想到：", a: ["舊照片的場景", "長輩的溫柔叮嚀", "被擁抱的溫暖感", "老家的木頭味道"], c: ['A','B','C','D']},
+        {q: "繁忙街頭，注意力被吸引至：", a: ["閃爍的廣告招牌", "路邊藝人的音樂", "路面碰撞的震動感", "路邊攤飄出的香味"], c: ['A','B','C','D']},
+        {q: "決定冒險時，動力來自：", a: ["看到成功的景象", "聽到內心的肯定", "感受到全身的熱血", "聞到自由的氣息"], c: ['A','B','C','D']},
+        {q: "挑選禮物時，您會考慮：", a: ["包裝是否精美漂亮", "物品是否有寓意故事", "物品是否實用好摸", "是否有療癒的香味"], c: ['A','B','C','D']},
+        {q: "參加講座時，最不滿意：", a: ["看不清投影片", "聽不見演講聲音", "椅子太硬不舒服", "空氣不流通的味道"], c: ['A','B','C','D']},
+        {q: "評價飯店的標準：", a: ["裝修設計感", "環境是否安靜", "床舖是否親膚", "標誌性的香氛"], c: ['A','B','C','D']},
+        {q: "海邊度假時，重點在於：", a: ["海天一色的湛藍", "浪花拍打的聲音", "腳踩細沙的觸感", "鹹鹹的海風味道"], c: ['A','B','C','D']},
+        {q: "對您而言，浪漫是：", a: ["一起看星空夕陽", "耳邊的深情承諾", "彼此擁抱的體溫", "淡淡的紅酒香氣"], c: ['A','B','C','D']},
+        {q: "選擇球鞋時，您會：", a: ["挑選最亮眼的配色", "聽踩在地上的聲音", "試穿感受包覆性", "聞新皮的氣味"], c: ['A','B','C','D']},
+        {q: "在森林散步，最享受：", a: ["穿過樹葉的陽光", "風吹草動的聲響", "腳踏泥土的踏實", "草木芬多精香氣"], c: ['A','B','C','D']},
+        {q: "記得討厭的人，先想到：", a: ["對方難看的臉色", "刻薄的說話聲", "給人的壓迫感", "對方身上的異味"], c: ['A','B','C','D']},
+        {q: "挑選咖啡時，指標是：", a: ["拉花的精緻度", "研磨機的聲音", "杯子的溫潤手感", "瞬間爆發的豆香"], c: ['A','B','C','D']},
+        {q: "電影難看，通常是因為：", a: ["畫面廉價難看", "配樂太吵不和諧", "座位不舒服", "場內有悶味"], c: ['A','B','C','D']},
+        {q: "買水果時，您會先：", a: ["看顏色是否鮮豔", "拍拍看聽聲音", "拿在手裡掂重量", "聞聞是否有熟香"], c: ['A','B','C','D']},
+        {q: "達成目標後的慶祝：", a: ["看一場視覺饗宴", "大聲宣佈喜訊", "做個全身SPA放鬆", "吃一頓香噴噴大餐"], c: ['A','B','C','D']},
+        {q: "您如何想起「家」？", a: ["裝潢擺設的樣子", "家人的談笑聲", "沙發窩著的感覺", "飯菜或洗衣香味"], c: ['A','B','C','D']},
+        {q: "最好的溝通是：", a: ["眼神交流達成共識", "語氣溫柔且有條理", "感受到彼此支持", "一起品茶的香氣"], c: ['A','B','C','D']}
+    ];
+
+    const box = document.getElementById('container');
+    questions.forEach((q, i) => {
+        box.innerHTML += `
+            <div class="q-section" id="p${i}">
+                <div class="q-card">
+                    <span class="q-number">STEP ${i+1} / 30</span>
+                    <div class="q-text">${q.q}</div>
+                    <div class="opt-list">
+                        ${q.a.map((opt, idx) => `
+                            <div class="opt-item" onclick="sel(${i}, '${q.c[idx]}', this)">
+                                <span class="opt-code">${q.c[idx]}</span> ${opt}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    let ans = {};
+    function sel(idx, val, el) {
+        // 視覺反饋
+        const siblings = el.parentElement.querySelectorAll('.opt-item');
+        siblings.forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+
+        ans[idx] = val;
+        const done = Object.keys(ans).length;
+        document.getElementById('cur').innerText = done;
+        document.getElementById('fill').style.width = (done/30*100) + "%";
+
+        // 自動平滑滾動
+        const next = document.getElementById('p' + (idx + 1)) || document.querySelector('.footer-page');
+        setTimeout(() => { next.scrollIntoView({ behavior: 'smooth' }); }, 300);
+
+        if(done === 30) document.getElementById('sub').disabled = false;
+    }
+
+    function show() {
+        document.getElementById('quiz-form').style.display = 'none';
+        document.querySelector('.header-bar').style.display = 'none';
+        document.getElementById('result-area').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('msg').innerText = "分析完成！感謝參與。";
+    }
+</script>
+
+</body>
+</html>
